@@ -1,0 +1,279 @@
+---
+title: "Data Mining homework 2 in R"
+author: "Jacer Sellami"
+output: html_notebook
+---
+
+# KNN
+## prediction by using just numeric variables.
+
+input Dataframe
+
+```{r cars}
+getwd()
+tl=read.csv2("Telecom Churn Customer.csv", sep=",")
+str(tl)
+```
+
+dataframe containing only the numerical variables
+```{r}
+tl2=tl[,c(3,6,19,20)]
+library(dplyr)
+tl2=tl2 %>% mutate_if(is.factor, as.numeric)
+head(tl2)
+
+```
+
+normalize the data
+```{r}
+normalize=function(X)
+{
+  (X-min(X,na.rm = T))/(max(X,na.rm = T)-min(X,na.rm = T))
+}
+tl2=sapply(tl2, FUN =normalize)
+head(tl2)
+```
+
+dividing the data
+```{r}
+test <- sample(1:nrow(tl2), 0.8 * nrow(tl2)) 
+
+tl_train <- tl2[test,] 
+
+tl_test <- tl2[-test,]
+
+target_category <- tl[test,21]
+
+test_category <- tl[-test,21]
+```
+performing KNN 
+```{r}
+library(class)
+pr <- knn(tl_train,tl_test,cl=target_category,k=5)
+tab <- table(pr,test_category)
+accuracy <- function(x){sum(diag(x)/(sum(rowSums(x)))) * 100}
+accuracy(tab)
+```
+selecting appropriate K
+```{r}
+Ret=NULL
+for(i in 1:50)
+{
+test <- sample(1:nrow(tl2), 0.8 * nrow(tl2)) 
+
+tl_train <- tl2[test,] 
+
+tl_test <- tl2[-test,]
+
+target_category <- tl[test,21]
+
+test_category <- tl[-test,21]
+  
+  accu=c()
+  for(kk in 1:30)
+  {
+   pr <- knn(tl_train,tl_test,cl=target_category,k=kk)
+   tab <- table(pr,test_category)
+   accuracy <- function(x){sum(diag(x)/(sum(rowSums(x)))) * 100}
+  accu=c(accu,accuracy(tab))
+  }
+  Ret=rbind(Ret,accu)
+}
+ACCU=colMeans(Ret)
+plot.new()
+plot(1:30,ACCU,type="l",col=2,xlab="Value of k",ylab="Accuracy")
+which.max(ACCU)
+
+```
+## prediction by using all variables.
+
+dataframe
+```{r}
+tl=read.csv2("Telecom Churn Customer.csv", sep=",")
+str(tl)
+
+```
+
+mutate the categorical variables as numeric
+```{r}
+library(dplyr)
+tl2=tl[-1]
+tl2=tl2[-20]
+tl2=tl2 %>% mutate_if(is.factor, as.numeric)
+tl=tl %>% mutate_if(is.factor, as.numeric)
+
+```
+
+normalizing data
+```{r}
+normalize=function(X)
+{
+  (X-min(X,na.rm = T))/(max(X,na.rm = T)-min(X,na.rm = T))
+}
+tl2=sapply(tl2, FUN =normalize)
+
+```
+
+dividing data
+```{r}
+test <- sample(1:nrow(tl2), 0.8 * nrow(tl2)) 
+
+tl_train <- tl2[test,] 
+
+tl_test <- tl2[-test,]
+
+target_category <- tl[test,21]
+
+test_category <- tl[-test,21]
+```
+
+Performing knn
+```{r}
+library(class)
+pr <- knn(tl_train,tl_test,cl=target_category,k=27)
+tab <- table(pr,test_category)
+accuracy <- function(x){sum(diag(x)/(sum(rowSums(x)))) * 100}
+accuracy(tab)
+
+```
+
+selecting appropriate K
+```{r}
+Ret=NULL
+for(i in 1:50)
+{
+test <- sample(1:nrow(tl2), 0.8 * nrow(tl2)) 
+
+tl_train <- tl2[test,] 
+
+tl_test <- tl2[-test,]
+
+target_category <- tl[test,21]
+
+test_category <- tl[-test,21]
+  
+  accu=c()
+  for(kk in 1:30)
+  {
+   pr <- knn(tl_train,tl_test,cl=target_category,k=kk)
+   tab <- table(pr,test_category)
+   accuracy <- function(x){sum(diag(x)/(sum(rowSums(x)))) * 100}
+  accu=c(accu,accuracy(tab))
+  }
+  Ret=rbind(Ret,accu)
+}
+ACCU=colMeans(Ret)
+plot.new()
+plot(1:30,ACCU,type="l",col=2,xlab="Value of k",ylab="Accuracy")
+which.max(ACCU)
+
+```
+
+testing the model
+```{r}
+xnew=c(1,	0,	0,	0,	0.02777778	,1,	0.0	,0.0	,1.0,	1.0,	0.0,	0.0,	0.0	,0.0,	0.0,	1,	1.0000000	,0.467171717	,0.0240428790)
+knn(train = tl_train,test = xnew,cl = target_category ,k = 27 )
+```
+
+Decision tree over the telecom customer dataset
+```{r}
+tl3=read.csv2("Telecom Churn Customer.csv", sep=",")
+str(tl3)
+
+```
+
+
+
+```{r}
+entropy=function(ni) # ni a vector containing the number of object from each class
+  {
+  
+  pi=ni/sum(ni)
+  sum(-pi*log(pi,base=2))
+}
+library(c50)
+
+```
+
+# Decision Tree
+
+1. Build a decision tree model predicting the Customer Churn:
+
+  a. Delete all rows with NA value.
+
+```{r}
+#import database
+tlchurn=read.csv2("customer churn.csv", sep=",", header=T)
+#Delete all rows with NA value
+tlchurn=na.omit(tlchurn)
+tlchurn=tlchurn[-1]
+set.seed(666)
+```
+
+  b. Mix randomly the data and divide it a training set (75%) and a test set (25%)
+```{r}
+x=sample(1:(nrow(tlchurn)*0.75),rep=F)
+data_TR=data.matrix(tlchurn[x,-20])
+```` 
+
+```{r}
+churn_TR=as.factor(tlchurn[x,20])
+data_TE=data.matrix(tlchurn[-x,-20])
+churn_TE=as.factor(tlchurn[-x,20])
+```
+  
+  c. Draw and interpret the decision tree. More precisely, what is the profile of churning customers?
+```{r}
+library(C50)
+m=C5.0(data_TR,churn_TR)
+#high number of trials to add weak learners in such a way that newer learners pick up the slack of older learners. In this way we can incrementally increase the accuracy of the model.
+summary(m)
+#classify the importance of each variable
+plot(m)
+````
+Decision Tree model uses mainly contract, InternetService, OnlineSecurity, StreamingTV and tenure features to make a decision if a customer will churn or not. These features separate churned customers from others well based on the split criteria in the decision tree.
+Each customer sample traverses the tree and final node gives the prediction.
+
+testing the model
+```{r}
+p=predict(object= m,newdata = data_TE,type = "class" )
+library(caret)
+confusionMatrix(p,churn_TE)
+```
+our production model workswith a 79% accuracy
+
+2. Find all possible associations rule in the data:
+importing the data
+```{r}
+library(arules)
+library(arulesViz)
+tlchurn=read.csv2("customer churn.csv", sep=",", header=T)
+```
+
+a. Divide numerical variables into ‘bins’ by using the cut points given before in the decision tree model so that all numerical variable become categorical.
+
+for easier interpretation we can plot only the relevant parts 
+```{r}
+library("partykit")
+myTree <- C50:::as.party.C5.0(m)
+plot(myTree[5])
+plot(myTree[24])
+### only the rules
+rules=C5.0(data_TR,churn_TR, rules=T)
+summary(rules)
+
+```
+our decisin tree dosent use neither monthly or yearly charges. The cut points for tenure are: 6 11 42
+```{r}
+library(tidyverse)
+
+breaks <- c(0,6,11,42,100)
+tags <- c("[0-6)","[6-11)", "[11-42)", "[42-100)")
+tlchurn$tenure <- cut(tlchurn$tenure, 
+                  breaks=breaks, 
+                  include.lowest=TRUE, 
+                  right=FALSE, 
+                  labels=tags)
+
+```
+
